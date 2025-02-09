@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hero Product Optimization Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: #121212;
+        color: #ffffff;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: auto;
+      }
+
+      .chart-container {
+        margin-bottom: 30px;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
+      }
+
+      h2 {
+        font-size: 32px;
+        color: #ff0050;
+        margin-bottom: 10px;
+        font-weight: bold;
+        letter-spacing: 1px;
+      }
+
+      .result-box {
+        background: #2c2c2c;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        text-align: left;
+      }
+
+      .formula-box {
+        margin-top: 10px;
+        margin-bottom: 20px;
+      }
+
+      .header {
+        padding-bottom: 20px;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+      }
+
+      .formula-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background: #1e1e1e;
+        border-radius: 12px;
+        cursor: pointer;
+      }
+
+      .formula-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #ff0050;
+      }
+
+      .formula-header i {
+        font-size: 16px;
+        color: white;
+        transition: transform 0.3s ease;
+      }
+
+      .formula-header i.rotate {
+        transform: rotate(180deg);
+      }
+
+      .formula-content {
+        display: none;
+        padding: 20px;
+        background: #1e1e1e;
+        border-radius: 12px;
+      }
+
+      .formula-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+
+      .formula-content label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .formula-content input {
+        width: 60px;
+        padding: 5px;
+        border-radius: 5px;
+        border: none;
+        background: #2c2c2c;
+        color: #ffffff;
+        text-align: center;
+      }
+
+      .formula-content button {
+        padding: 10px;
+        background: #ff0050;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        margin-top: 10px;
+        cursor: pointer;
+      }
+
+      #notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #2c2c2c;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      #notification.success {
+        background: #28a745;
+      }
+
+      #notification.error {
+        background: #ff0050;
+      }
+
+      #notification button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 16px;
+        margin-left: 15px;
+        cursor: pointer;
+      }
+
+      .filters {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      .filters input,
+      .filters select {
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background: #2c2c2c;
+        color: white;
+        font-size: 14px;
+        min-width: 200px;
+      }
+
+      .table-container {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        border: 1px solid #444;
+        text-align: left;
+      }
+
+      th {
+        background-color: #333;
+      }
+
+      .get-info {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .learn-more {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .close-modal {
+        background: #ff0050;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        float: right;
+        border-radius: 8px;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        max-width: 700px;
+        background: #1e1e1e;
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
+        text-align: left;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      .modal-content {
+        padding: 10px;
+      }
+
+      .file-input-container {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .file-label {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        padding: 5px 15px;
+        background: #ff0050;
+        color: white;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      .file-label input {
+        position: absolute;
+        opacity: 0;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+
+      .file-input-container span {
+        color: white;
+        font-size: 14px;
+      }
+
+      input,
+      button,
+      select {
+        margin-left: 20px;
+        border-radius: 8px;
+        border: none;
+        background: linear-gradient(135deg, #ff0050, #ff007f);
+        color: #ffffff;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+      }
+      button:hover {
+        background: linear-gradient(135deg, #ff007f, #ff0050);
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h2>Hero Dashboard</h2>
+      <p>Upload the two CSV files to generate insights.</p>
+
+      <input type="file" id="fileInput1" accept=".csv" />
+      <input type="file" id="fileInput2" accept=".csv" />
+
+      <button onclick="processFiles()">Generate Insights</button>
+    </div>
+
+    <div class="formula-box">
+      <div class="formula-header" onclick="toggleFormulaBox()">
+        <h3>Adjust Scoring Formula (Total Must Be 100)</h3>
+        <i id="formulaToggleIcon">▼</i>
+      </div>
+      <div class="formula-content" id="formulaContent">
+        <div class="formula-grid">
+          <label
+            >Partial Credit Weight
+            <input
+              type="number"
+              id="weightPartialCredit"
+              value="25"
+              step="5"
+              min="0"
+              max="100"
+              onchange="validateWeights()"
+          /></label>
+          <label
+            >30D GMV Weight
+            <input
+              type="number"
+              id="weight30DGMV"
+              value="30"
+              step="5"
+              min="0"
+              max="100"
+              onchange="validateWeights()"
+          /></label>
+          <label
+            >7D GMV Weight
+            <input
+              type="number"
+              id="weight7DGMV"
+              value="15"
+              step="5"
+              min="0"
+              max="100"
+              onchange="validateWeights()"
+          /></label>
+          <label
+            >Ad Spend Bonus (3K+)
+            <input
+              type="number"
+              id="bonusAdSpendHigh"
+              value="5"
+              step="5"
+              min="0"
+              max="100"
+              onchange="validateWeights()"
+          /></label>
+          <label
+            >Ad Spend Bonus (150+)
+            <input
+              type="number"
+              id="bonusAdSpendLow"
+              value="5"
+              step="5"
+              min="0"
+              max="100"
+              onchange="validateWeights()"
+          /></label>
+          <label
+            >Inventory Penalty (<500)
+            <input
+              type="number"
+              id="penaltyInventory"
+              value="-10"
+              step="5"
+              min="-100"
+              max="0"
+              onchange="validateWeights()"
+          /></label>
+          <label
+            >w/w Delta Bonus (Positive)
+            <input
+              type="number"
+              id="bonusWWDelta"
+              value="5"
+              step="5"
+              min="0"
+              max="100"
+              onchange="validateWeights()"
+          /></label>
+          <label
+            >w/w Delta Penalty (Negative)
+            <input
+              type="number"
+              id="penaltyWWDelta"
+              value="-5"
+              step="5"
+              min="-100"
+              max="0"
+              onchange="validateWeights()"
+          /></label>
+        </div>
+        <button onclick="updateFormula()">Apply Formula</button>
+      </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <div class="container" id="dashboard">
+      <div class="chart-container" id="productScoring"></div>
+      <div class="result-box" id="textInsights">
+        <h3 style="text-align: center">
+          Hero Product Swap & Optimization Insights
+        </h3>
+        <div class="filters">
+          <input
+            type="text"
+            id="searchShopName"
+            placeholder="Search by Shop Name"
+            onkeyup="filterInsights()"
+            list="shopNames"
+          />
+          <datalist id="shopNames"></datalist>
+        </div>
+        <div class="table-container">
+          <table id="insightsTable">
+            <thead>
+              <tr>
+                <th>Shop Name</th>
+                <th>Quota Status</th>
+                <th>Optimization Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="insightsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shop Modal Popup -->
+    <div id="shopModal" class="modal">
+      <button class="close-modal" onclick="closeModal()">Close</button>
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <!-- Product Details Modal -->
+    <div id="productModal" class="modal">
+      <button class="close-modal" onclick="closeProductModal()">Close</button>
+      <div class="modal-content" id="productContent"></div>
+    </div>
+
+    <script>
+      let dashboardData = [],
+        heroData = [];
+      let shopMap = {};
+      let weights = {
+        partialCredit: 25,
+        gmv30D: 30,
+        gmv7D: 15,
+        adSpendHigh: 5,
+        adSpendLow: 5,
+        inventoryPenalty: -10,
+        wwDeltaBonus: 5,
+        wwDeltaPenalty: -5,
+      };
+
+      // Toggle Formula Box
+      function toggleFormulaBox() {
+        const formulaContent = document.getElementById("formulaContent");
+        const formulaToggleIcon = document.getElementById("formulaToggleIcon");
+        if (
+          formulaContent.style.display === "none" ||
+          formulaContent.style.display === ""
+        ) {
+          formulaContent.style.display = "block";
+          formulaToggleIcon.innerText = "▲";
+        } else {
+          formulaContent.style.display = "none";
+          formulaToggleIcon.innerText = "▼";
+        }
+      }
+
+      function showNotification(message, type = "success") {
+        const notification = document.getElementById("notification");
+        notification.innerHTML = `${message} <button onclick="closeNotification()">x</button>`;
+        notification.className = type;
+        notification.style.display = "flex";
+        setTimeout(() => {
+          notification.style.display = "none";
+        }, 2000);
+      }
+
+      function closeNotification() {
+        document.getElementById("notification").style.display = "none";
+      }
+
+      // Validate Weights
+      function validateWeights() {
+        let total = [
+          ...document.querySelectorAll(".formula-content input"),
+        ].reduce((sum, input) => sum + Math.abs(parseInt(input.value)), 0);
+        if (total !== 100) {
+          showNotification(
+            `⚠️ Absolute Total must be 100. Current: ${total}`,
+            "error",
+          );
+          return false;
+        } else {
+          showNotification("✔️ Weights are validated!", "success");
+          return true;
+        }
+      }
+
+      // Process Files
+      function processFiles() {
+        const file1 = document.getElementById("fileInput1").files[0];
+        const file2 = document.getElementById("fileInput2").files[0];
+
+        if (file1 && file2) {
+          readCSV(file1, (data) => {
+            dashboardData = data;
+            if (heroData.length) generateDashboard();
+          });
+          readCSV(file2, (data) => {
+            heroData = data;
+            if (dashboardData.length) generateDashboard();
+          });
+        } else {
+          showNotification("Please upload both CSV files.", "error");
+        }
+      }
+
+      // Read CSV
+      function readCSV(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          Papa.parse(event.target.result, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+            complete: function (results) {
+              callback(results.data);
+              showNotification(
+                "✔️ Insights generated successfully!",
+                "success",
+              );
+            },
+          });
+        };
+        reader.readAsText(file);
+      }
+
+      // Update Formula
+      function updateFormula() {
+        if (!validateWeights()) {
+          return;
+        }
+
+        weights = {
+          partialCredit: parseInt(
+            document.getElementById("weightPartialCredit").value,
+          ),
+          gmv30D: parseInt(document.getElementById("weight30DGMV").value),
+          gmv7D: parseInt(document.getElementById("weight7DGMV").value),
+          adSpendHigh: parseInt(
+            document.getElementById("bonusAdSpendHigh").value,
+          ),
+          adSpendLow: parseInt(
+            document.getElementById("bonusAdSpendLow").value,
+          ),
+          inventoryPenalty: parseInt(
+            document.getElementById("penaltyInventory").value,
+          ),
+          wwDeltaBonus: parseInt(document.getElementById("bonusWWDelta").value),
+          wwDeltaPenalty: parseInt(
+            document.getElementById("penaltyWWDelta").value,
+          ),
+        };
+
+        showNotification("✔️ Formula updated successfully!");
+        toggleFormulaBox();
+        generateDashboard();
+      }
+
+      function generateDashboard() {
+        shopMap = {};
+        let insightsBody = "";
+        let shopNames = new Set();
+
+        heroData.forEach((shop) => {
+          shopMap[shop["Shop Name"]] = {
+            quota: shop["NHP Quota"] || 0,
+            nominations: [],
+            potential: [],
+            amName: shop["AM Name"] || "Unknown",
+          };
+          shopNames.add(shop["Shop Name"]);
+        });
+
+        let scoringData = [];
+
+        dashboardData.forEach((product) => {
+          let shop = shopMap[product["Shop Name"]];
+          if (!shop) return;
+
+          let score =
+            product["Partial Credit"] * weights.partialCredit +
+            product["30D GMV"] * weights.gmv30D +
+            product["7D GMV"] * weights.gmv7D +
+            (product["Ad Spend L30D $150 Potential - $3K Established"] >= 3000
+              ? weights.adSpendHigh
+              : product["Ad Spend L30D $150 Potential - $3K Established"] >= 150
+                ? weights.adSpendLow
+                : 0) +
+            (product["Inventory 500+"] < 500 ? weights.inventoryPenalty : 0) +
+            (product["w/w delta ($)"] > 0
+              ? weights.wwDeltaBonus
+              : weights.wwDeltaPenalty);
+
+          scoringData.push({
+            name: product["Product Name - Truncated"],
+            score: Math.round(score),
+          });
+
+          if (product["Nominated"]) {
+            shop.nominations.push({
+              name: product["Product Name - Truncated"],
+              score,
+              exists: true,
+            });
+          } else if (product["Potential Hero Product"]) {
+            shop.potential.push({
+              name: product["Product Name - Truncated"],
+              score,
+              exists: true,
+            });
+          }
+        });
+
+        Object.keys(shopMap).forEach((shopName) => {
+          let shop = shopMap[shopName];
+          let optimized = true;
+          let swapSuggestions = [];
+          let quotaStatus = "";
+          let optimizationStatus = "✅ Optimized Selection";
+          let minQuota = 0,
+            maxQuota = 0;
+
+          if (typeof shop.quota === "string" && shop.quota.includes("~")) {
+            [minQuota, maxQuota] = shop.quota.split("~").map(Number);
+          } else if (typeof shop.quota === "number") {
+            minQuota = maxQuota = shop.quota; // If single value, treat as fixed quota
+          } else {
+            console.warn(`Invalid quota format for shop: ${shopName}`);
+            quotaStatus = "⚠️ Quota Not Defined";
+          }
+
+          // Logic for quota status
+          if (shop.nominations.length > maxQuota) {
+            quotaStatus = `⚠️ Over-nominated (${shop.nominations.length}/${minQuota}~${maxQuota})`;
+          } else if (shop.nominations.length < minQuota) {
+            quotaStatus = `⚠️ Under-nominated (${shop.nominations.length}/${minQuota}~${maxQuota})`;
+          } else {
+            quotaStatus = `✅ Quota Met (${minQuota}~${maxQuota})`;
+          }
+
+          if (shop.nominations.length > 0 && shop.potential.length > 0) {
+            shop.nominations.sort((a, b) => a.score - b.score);
+            shop.potential.sort((a, b) => b.score - a.score);
+
+            for (
+              let i = 0;
+              i < Math.min(shop.nominations.length, shop.potential.length);
+              i++
+            ) {
+              if (shop.potential[i].score > shop.nominations[i].score) {
+                swapSuggestions.push(
+                  `Swap <strong>${shop.nominations[i].name}</strong> (Score: ${Math.round(shop.nominations[i].score)}) with <strong>${shop.potential[i].name}</strong> (Score: ${Math.round(shop.potential[i].score)})`,
+                );
+                optimized = false;
+              }
+            }
+          }
+
+          if (!optimized) {
+            optimizationStatus = `⚠️ Needs Improvement`;
+          }
+
+          insightsBody += `<tr>
+            <td>${shopName}</td>
+            <td>${quotaStatus}</td>
+            <td>${optimizationStatus}</td>
+            <td><button class="learn-more" onclick="openModal('${shopName}')">Learn More</button></td>
+        </tr>`;
+
+          shopMap[shopName].swapSuggestions = swapSuggestions;
+        });
+
+        document.getElementById("insightsBody").innerHTML = insightsBody;
+
+        // Populate auto-complete shop names
+        let shopNameList = document.getElementById("shopNames");
+        shopNameList.innerHTML = "";
+        shopNames.forEach((shop) => {
+          let option = document.createElement("option");
+          option.value = shop;
+          shopNameList.appendChild(option);
+        });
+
+        // Plotly Chart for Product Scoring
+        let xValues = scoringData.map((d) => d.name);
+        let yValues = scoringData.map((d) => d.score);
+
+        if (xValues.length > 0 && yValues.length > 0) {
+          Plotly.newPlot(
+            "productScoring",
+            [
+              {
+                x: xValues,
+                y: yValues,
+                type: "bar",
+                marker: { color: "#ff0050" },
+              },
+            ],
+            {
+              title: "Product Scoring",
+              xaxis: { title: "Products" },
+              yaxis: { title: "Score" },
+              plot_bgcolor: "#1e1e1e",
+              paper_bgcolor: "#1e1e1e",
+              font: { color: "#ffffff" },
+            },
+          );
+        } else {
+          document.getElementById("productScoring").innerHTML =
+            "<p>No data available for scoring.</p>";
+        }
+      }
+
+      function filterInsights() {
+        let shopName = document
+          .getElementById("searchShopName")
+          .value.toLowerCase();
+        let rows = document
+          .getElementById("insightsTable")
+          .getElementsByTagName("tbody")[0]
+          .getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+          let shopCell = rows[i]
+            .getElementsByTagName("td")[0]
+            .textContent.toLowerCase();
+          let matchesShop = shopName === "" || shopCell.includes(shopName);
+          rows[i].style.display = matchesShop ? "" : "none";
+        }
+      }
+
+      // Modal Functions
+      function openModal(shopName) {
+        let shop = shopMap[shopName];
+        let modalContent = `<h2>${shopName} - Detailed Analysis</h2>`;
+        modalContent += `<p><strong>Max Quota Allowed:</strong> ${shop.quota} | <strong>Max Fulfilled:</strong> ${shop.nominations.length}</p>`;
+
+        // Nominated Products
+        modalContent += `<h3>Nominated Products</h3>`;
+        if (shop.nominations.length > 0) {
+          modalContent += `<table><tr><th>Product Name</th><th>Score</th><th>Availability</th><th>Action</th></tr>`;
+          shop.nominations.forEach((p) => {
+            modalContent += `<tr>
+                <td>${p.name}</td>
+                <td>${Math.round(p.score)}</td>
+                <td>${p.exists ? "✅ Present" : '<span style="color:red;">❌ Not in CSV (Not Eligible)</span>'}</td>
+                <td><button class="get-info" onclick="openProductModal('${p.name}')">Get Info</button></td>
+            </tr>`;
+          });
+          modalContent += `</table>`;
+        } else {
+          modalContent += `<p>No nominated products.</p>`;
+        }
+
+        // Potential Products
+        modalContent += `<h3>Potential Hero Products</h3>`;
+        if (shop.potential.length > 0) {
+          modalContent += `<table><tr><th>Product Name</th><th>Score</th><th>Availability</th><th>Action</th></tr>`;
+          shop.potential.forEach((p) => {
+            modalContent += `<tr>
+                <td>${p.name}</td>
+                <td>${Math.round(p.score)}</td>
+                <td>${p.exists ? "✅ Present" : '<span style="color:red;">❌ Not in CSV (Not Eligible)</span>'}</td>
+                <td><button class="get-info" onclick="openProductModal('${p.name}')">Get Info</button></td>
+            </tr>`;
+          });
+          modalContent += `</table>`;
+        } else {
+          modalContent += `<p>No better potential products found.</p>`;
+        }
+
+        if (shop.swapSuggestions.length > 0) {
+          modalContent += `<h3>Suggested Improvements</h3>`;
+          modalContent += `<p>${shop.swapSuggestions.join("<br>")}</p>`;
+        }
+
+        document.getElementById("modalContent").innerHTML = modalContent;
+        document.getElementById("shopModal").style.display = "block";
+      }
+
+      function closeModal() {
+        document.getElementById("shopModal").style.display = "none";
+      }
+
+      function openProductModal(productName) {
+        let productDetails = dashboardData.find(
+          (p) => p["Product Name - Truncated"] === productName,
+        );
+
+        let modalContent = `<h2>${productName} - Product Details</h2>`;
+        modalContent += `<table>`;
+        for (const key in productDetails) {
+          modalContent += `<tr><td><strong>${key}</strong></td><td>${productDetails[key]}</td></tr>`;
+        }
+        modalContent += `</table>`;
+
+        document.getElementById("productContent").innerHTML = modalContent;
+        document.getElementById("productModal").style.display = "block";
+      }
+
+      function closeProductModal() {
+        document.getElementById("productModal").style.display = "none";
+      }
+
+      window.onclick = function (event) {
+        let shopModal = document.getElementById("shopModal");
+        let productModal = document.getElementById("productModal");
+        if (event.target === shopModal) closeModal();
+        if (event.target === productModal) closeProductModal();
+      };
+    </script>
+  </body>
+</html>
